@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+
+  seglaravel:
+    container_name: ${SEG_CONTAINER_NAME}
+
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_ENV: ${APP_ENV}
+
+    environment:
+      APP_ENV: ${APP_ENV}
+      ENABLE_XDEBUG: ${ENABLE_XDEBUG}
+      XDEBUG_MODE: ${XDEBUG_MODE}
+
+    ports:
+      - ${SEG_PORTS}
+
+    extra_hosts:
+    - "host.docker.internal:host-gateway" #required for Xdebug
+
+    volumes:
+      - ./:/var/www/html
+
+    networks:
+      default:
+        ipv4_address: ${SEG_DOCKER_IP}
+
+networks:
+  default:
+    external: true
+    name: ${NETWORK_NAME}
