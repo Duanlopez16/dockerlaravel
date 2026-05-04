@@ -64,9 +64,7 @@ RUN mkdir -p /tmp && chmod 1777 /tmp
 # =========================
 # GLOBAL VARIABLES
 # =========================
-ENV ENABLE_NEW_RELIC=false \
-    ENABLE_XDEBUG=true \
-    PHP_MEMORY_LIMIT=512M \
+ENV PHP_MEMORY_LIMIT=512M \
     APP_ENV=${APP_ENV}
 
 # =========================
@@ -78,28 +76,28 @@ COPY xdebug.ini /tmp/xdebug.ini
 # =========================
 # NEW RELIC
 # =========================
-RUN if [ "$ENABLE_NEW_RELIC" = "true" ]; then \
-    echo "Installing New Relic..." && \
+RUN if [ "$APP_ENV" = "production" ]; then \
+    echo "[INFO] Installing New Relic..." && \
     curl -L https://download.newrelic.com/php_agent/release/newrelic-php5-12.6.0.34-linux.tar.gz \
     | tar -C /tmp -zx && \
     NR_INSTALL_USE_CP_NOT_LN=1 NR_INSTALL_SILENT=1 /tmp/newrelic-php5-*/newrelic-install install && \
     mv /tmp/newrelic.ini /etc/php.d/newrelic.ini; \
 else \
-    echo "New Relic disabled" && \
+    echo "[WARN] New Relic disabled" && \
     rm -f /tmp/newrelic.ini; \
 fi
 
 # =========================
 # XDEBUG
 # =========================
-RUN if [ "$ENABLE_XDEBUG" = "true" ]; then \
-    echo "Installing Xdebug..." && \
+RUN if [ "$APP_ENV" = "local" ]; then \
+    echo "[INFO] Installing Xdebug..." && \
     pecl install xdebug && \
     echo "zend_extension=$(find /usr/lib64/php/modules/ -name xdebug.so)" > /etc/php.d/15-xdebug.ini && \
     mv /tmp/xdebug.ini /etc/php.d/99-xdebug.ini && \
     rm -f /etc/php.d/15-xdebug.ini; \
 else \
-    echo "Xdebug is disabled" && \
+    echo "[WARN] Xdebug is disabled" && \
     rm -f /tmp/xdebug.ini; \
 fi
 
@@ -112,13 +110,15 @@ RUN yum -y remove gcc make autoconf php-devel && \
 # =========================
 COPY --from=builder /app /tmp/app
 
+RUN echo "Copy app APP_ENV=$APP_ENV"
+
 RUN if [ "$APP_ENV" = "production" ]; then \
-    echo "Copying code to $APP_ENV" && \
+    echo "[INFO] Copying code to $APP_ENV" && \
     cp -r /tmp/app/. /var/www/html && \
     chgrp -R 0 /var/www/html && \
     chmod -R g+rwX /var/www/html; \
 else \
-    echo "Development mode: volume will be used"; \
+    echo "[INFO] Development mode: volume will be used"; \
 fi
 
 # =========================

@@ -40,7 +40,7 @@ class ValidateKeycloakToken
          * Checks whether the token is empty or was not sent
          */
         if (blank($token)) {
-            return ApiResponse::response('Error', 'Token no proporcionado', [], 401);
+            return ApiResponse::response('Error', 'Token not provided', [], 401);
         }
 
         try {
@@ -78,9 +78,9 @@ class ValidateKeycloakToken
     private function handleException(Throwable $e): Response
     {
         return match (true) {
-            $e instanceof ExpiredException => ApiResponse::response('Error', 'Token expirado', [], 401),
-            $e instanceof SignatureInvalidException => ApiResponse::response('Error', 'Firma inválida', [], 401),
-            $e instanceof BeforeValidException => ApiResponse::response('Error', 'Token aún no válido', [], 401),
+            $e instanceof ExpiredException => ApiResponse::response('Error', 'Token has expired', [], 401),
+            $e instanceof SignatureInvalidException => ApiResponse::response('Error', 'Invalid signature', [], 401),
+            $e instanceof BeforeValidException => ApiResponse::response('Error', 'Token invalid', [], 401),
             $e instanceof DomainException => ApiResponse::response('Error', $e->getMessage(), [], 400),
             default => ApiResponse::response('Error', $e->getMessage(), [], 500),
         };

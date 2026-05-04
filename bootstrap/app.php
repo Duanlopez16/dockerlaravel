@@ -19,14 +19,14 @@ return Application::configure(basePath: dirname(__DIR__))
         //     ->name('admin.')
         //     ->group(base_path('routes/admin.php'));
 
-        // API V1
+        // API V2
         Route::middleware(['api', 'keycloak.auth'])
             ->prefix('api/v2')
             ->name('api.v2.')
             ->group(
                 function () {
                     require base_path('routes/v2/userRoute.php');
-                    require base_path('routes/v2/proveRoute.php');
+                    require base_path('routes/v2/probeRoute.php');
                 }
             );
     })

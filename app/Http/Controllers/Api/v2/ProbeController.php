@@ -3,14 +3,13 @@
 namespace App\Http\Controllers\Api\v2;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Carbon\Carbon;
 use App\Support\ApiResponse;
 use Illuminate\Support\Facades\Log;
 
 
-class ProveController extends Controller
+class ProbeController extends Controller
 {
 
     /**
@@ -22,10 +21,9 @@ class ProveController extends Controller
      * It does NOT validate external dependencies (DB, APIs, etc.), it only confirms that
      * the service is active.
      *
-     * @param Request $request Incoming HTTP request
      * @return \Illuminate\Http\JsonResponse JSON response with service status
      */
-    public function livenessProbe(Request $request): \Illuminate\Http\JsonResponse
+    public function livenessProbe(): \Illuminate\Http\JsonResponse
     {
         $version = config('app.version');
         $description = config('app.name');
@@ -50,10 +48,9 @@ class ProveController extends Controller
      * - This endpoint is used ONLY during startup
      * - It allows more time before the app is considered “failed”
      *
-     * @param Request $request Incoming HTTP request
-     * @return \Illuminate\Http\Response Standardized response
+     * @return \Illuminate\Http\JsonResponse Standardized response
      */
-    public function startup(Request $request): \Illuminate\Http\JsonResponse
+    public function startup(): \Illuminate\Http\JsonResponse
     {
         $version = config('app.version');
         $description = config('app.name');
@@ -102,7 +99,7 @@ class ProveController extends Controller
      * - 200 OK → HEALTHY or DEGRADED
      * - 500 INTERNAL SERVER ERROR → UNHEALTHY
      *
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Http\JsonResponse
      */
     public function readiness(): \Illuminate\Http\JsonResponse
     {
@@ -127,78 +124,80 @@ class ProveController extends Controller
         $statusCode = Response::HTTP_INTERNAL_SERVER_ERROR;
         $status = 'UNHEALTHY';
 
-        // 🔹 CASPER
-        // try {
-        //     $casperService = app()->make('App\Repositories\UserRepository')
-        //         ->getUser(['user_types_id' => 2], ['id']);
+        //CASPER
+        try {
+            $casperService = \App\Repositories\UserRepository::getUser(['id' => 1], ['id']);
 
-        //     if ($casperService) {
-        //         $casper = [
-        //             'name' => 'casper',
-        //             'status' => 'HEALTHY',
-        //             'detail' => '1 item found',
-        //         ];
-        //     }
-        // } catch (\Throwable $e) {
-        //     $casper = [
-        //         'name' => 'casper',
-        //         'status' => 'UNHEALTHY',
-        //         'detail' => 'error: ' . $e->getMessage(),
-        //     ];
-        // }
+            if ($casperService['status'] && !empty($casperService['data'])) {
+                $casper = [
+                    'name' => 'casper',
+                    'status' => 'HEALTHY',
+                    'detail' => '1 item found',
+                ];
+            }
+        } catch (\Throwable $e) {
+            $casper = [
+                'name' => 'casper',
+                'status' => 'UNHEALTHY',
+                'detail' => 'error: ' . $e->getMessage(),
+            ];
+        }
 
-        // 🔹 SUBSCRIPTIONS
-        // try {
-        //     $subscriptionsResponse = app()->make('App\Repositories\PinesRedimidosRepository')
-        //         ->getRedeemedPin(
-        //             ['pin' => ['like' => '2UNPgFzPEQkJ@TME9KPGOFE8G']],
-        //             ['acceso']
-        //         );
+        //SUBSCRIPTIONS
+        try {
+            $subscriptionsResponse = \App\Repositories\DocumentTypeRepository::getDocumentType(['id' => 1], ['id']);
 
-        //     if ($subscriptionsResponse) {
-        //         $subscriptions = [
-        //             'name' => 'subscriptions',
-        //             'status' => 'HEALTHY',
-        //             'detail' => '1 item found',
-        //         ];
-        //     } else {
-        //         $subscriptions = [
-        //             'name' => 'subscriptions',
-        //             'status' => 'DEGRADED',
-        //             'detail' => 'tries to connect but it does not matter',
-        //         ];
-        //     }
-        // } catch (\Throwable $e) {
-        //     $subscriptions = [
-        //         'name' => 'subscriptions',
-        //         'status' => 'UNKNOWN',
-        //         'detail' => 'error: ' . $e->getMessage(),
-        //     ];
-        // }
+            if ($subscriptionsResponse['status'] && !empty($subscriptionsResponse['data'])) {
+                $subscriptions = [
+                    'name' => 'subscriptions',
+                    'status' => 'HEALTHY',
+                    'detail' => '1 item found',
+                ];
+            } else {
+                $subscriptions = [
+                    'name' => 'subscriptions',
+                    'status' => 'DEGRADED',
+                    'detail' => 'tries to connect but it does not matter',
+                ];
+            }
+        } catch (\Throwable $e) {
+            $subscriptions = [
+                'name' => 'subscriptions',
+                'status' => 'UNKNOWN',
+                'detail' => 'error: ' . $e->getMessage(),
+            ];
+        }
 
-        // 🔹 PIANO
-        // try {
-        //     $pianoService = app()->make('App\Services\PianoService');
-        //     $response = $pianoService->getAppFeatures(config('services.piano.aid'));
+        //PIANO
+        try {
+            $urlFeatures = config('piano.url_piano') . config('piano.features_url');
 
-        //     if (!empty($response['app_features'])) {
-        //         $piano = [
-        //             'name' => 'piano',
-        //             'status' => 'HEALTHY',
-        //             'detail' => '1 item found',
-        //         ];
-        //     }
-        // } catch (\Throwable $e) {
-        //     Log::error('piano readiness error', ['error' => $e->getMessage()]);
+            $getFeatures = \App\Services\Curl::get(
+                $urlFeatures,
+                [
+                    'aid' => config('piano.aid'),
+                    'api_token' => config('piano.api_token')
+                ]
+            );
 
-        //     $piano = [
-        //         'name' => 'piano',
-        //         'status' => 'UNHEALTHY',
-        //         'detail' => 'error: ' . $e->getMessage(),
-        //     ];
-        // }
+            if ($getFeatures['status'] && !empty($getFeatures['data'])) {
+                $piano = [
+                    'name' => 'piano',
+                    'status' => 'HEALTHY',
+                    'detail' => '1 item found',
+                ];
+            }
+        } catch (\Throwable $e) {
+            Log::error('piano readiness error', ['error' => $e->getMessage()]);
 
-        // 🔹 Evaluación global
+            $piano = [
+                'name' => 'piano',
+                'status' => 'UNHEALTHY',
+                'detail' => 'error: ' . $e->getMessage(),
+            ];
+        }
+
+        //Overall assessment
         $services = [$casper, $subscriptions, $piano];
 
         $hasDegraded = collect($services)->contains(fn($s) => $s['status'] === 'DEGRADED');
