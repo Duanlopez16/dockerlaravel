@@ -1,0 +1,6 @@
+<?php
+
+
+return [
+    'permissionErrorMessage' =>  'The user does not have the required permissions to use this service'
+];
